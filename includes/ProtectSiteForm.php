@@ -2,7 +2,6 @@
 /**
  * Class that handles the actual Special:ProtectSite page
  * This is a modified version of the ancient HTMLForm class.
- * @todo FIXME: could probably be rewritten to use the modern HTMLForm :)
  */
 class ProtectSiteForm {
 	public $mRequest, $action, $persist_data;
@@ -114,19 +113,6 @@ class ProtectSiteForm {
 	}
 
 	/**
-	 * @param string $name Name of the fieldset.
-	 * @param string $content HTML content to put in.
-	 * @return string HTML fieldset
-	 */
-	private function fieldset( $name, $content ) {
-		// Give grep a chance to find the usages:
-		// protectsite-title, protectsite-createaccount, protectsite-createpage,
-		// protectsite-edit, protectsite-move, protectsite-upload
-		return '<fieldset><legend>' . wfMessage( 'protectsite-' . $name )->escaped() .
-			"</legend>\n" . $content . "\n</fieldset>\n";
-	}
-
-	/**
 	 * Override the broken function in the HTMLForm class
 	 * This was fixed in r16320 of the MW source; WM bugzilla bug #7188.
 	 */
@@ -137,15 +123,18 @@ class ProtectSiteForm {
 		// protectsite-edit-0, protectsite-edit-1, protectsite-edit-2,
 		// protectsite-move-0, protectsite-move-1,
 		// protectsite-upload-0, protectsite-upload-1
-		$s = '';
+		$options = [];
+
 		foreach ( $fields as $value => $checked ) {
-			$s .= '<div><label>' .
-				Html::input( $varname, $value, 'radio', ( $checked ? [ 'checked' => 'checked' ] : [] ) ) .
-				wfMessage( 'protectsite-' . $varname . '-' . $value )->escaped() .
-				"</label></div>\n";
+			$options['protectsite-' . $varname . '-' . $value] = $value;
 		}
 
-		return $this->fieldset( $varname, $s );
+		return [
+			'name' => $varname,
+			'type' => 'radio',
+			'label-message' => $varname,
+			'options-messages' => $options,
+		];
 	}
 
 	/**
@@ -160,10 +149,13 @@ class ProtectSiteForm {
 		// Give grep a chance to find the usages:
 		// protectsite-timeout, protectsite-comment, protectsite-ucomment
 		$value = htmlspecialchars( $value, ENT_QUOTES );
-		return '<div><label>' . wfMessage( 'protectsite-' . $varname )->escaped() .
-				Html::input( $varname, $value ) .
-				$append .
-				"</label></div>\n";
+
+		return [
+			'type' => 'text',
+			'name' => $varname,
+			'label' => wfMessage( 'protectsite-' . $varname )->escaped() . $append,
+			'default' => $value,
+		];
 	}
 
 	/* This function outputs the field status. */
@@ -177,10 +169,22 @@ class ProtectSiteForm {
 		//   protectsite-edit-0, protectsite-edit-1, protectsite-edit-2,
 		//   protectsite-move-0, protectsite-move-1,
 		//   protectsite-upload-0, protectsite-upload-1
-		return '<b>' . wfMessage( 'protectsite-' . $name )->escaped() . ' - <i>' .
-					'<span style="color: ' . ( ( $state > 0 ) ? 'red' : 'green' ) . '">' .
-					wfMessage( 'protectsite-' . $name . '-' . $state )->escaped() . '</span>' .
-					"</i></b><br />\n";
+		$label = Html::element(
+			'b',
+			[],
+			wfMessage( 'protectsite-' . $name )->escaped() . ' - '
+		);
+		$label .= Html::element(
+			'b',
+			[ 'style' => 'color: ' . ( ( $state > 0 ) ? 'red' : 'green' ) ],
+			wfMessage( 'protectsite-' . $name . '-' . $state )->escaped()
+		);
+
+		return [
+			'type' => 'info',
+			'default' => $label,
+			'raw' => true,
+		];
 	}
 
 	function unProtectsiteForm( $prot ) {
@@ -188,32 +192,41 @@ class ProtectSiteForm {
 
 		/* Construct page data and add to output. */
 		$wgOut->addWikiMsg( 'protectsite-text-unprotect' );
-		$wgOut->addHTML(
-			'<form name="unProtectsite" action="' . $this->action . '" method="post">' . "\n" .
-				$this->fieldset( 'title',
-					$this->showField( 'createaccount', $prot['createaccount'] ) .
-					$this->showField( 'createpage', $prot['createpage'] ) .
-					$this->showField( 'edit', $prot['edit'] ) .
-					$this->showField( 'move', $prot['move'] ) .
-					$this->showField( 'upload', $prot['upload'] ) .
-					'<b>' . wfMessage( 'protectsite-timeout' )->escaped() . ' </b> ' .
-					'<i>' . $wgLang->timeAndDate( wfTimestamp( TS_MW, $prot['until'] ), true ) . '</i>' .
-					'<br />' .
-					( $prot['comment'] != '' ?
-					'<b>' . wfMessage( 'protectsite-comment' )->escaped() . ' </b> ' .
-					'<i>' . $prot['comment'] . '</i>' .
-					'<br />' : '' ) .
-					"<br />\n" .
-					$this->textbox( 'ucomment' ) .
-					'<br />' .
-					Xml::element( 'input', [
-						'type'	=> 'submit',
-						'name'	=> 'unprotect',
-						'value' => wfMessage( 'protectsite-unprotect' )->text() ]
-					)
-				) .
-			'</form>'
-		);
+
+		$formDescriptor = [
+			$this->showField( 'createaccount', $prot['createaccount'] ),
+			$this->showField( 'createpage', $prot['createpage'] ),
+			$this->showField( 'edit', $prot['edit'] ),
+			$this->showField( 'move', $prot['move'] ),
+			$this->showField( 'upload', $prot['upload'] ),
+			[
+				'type' => 'info',
+				'default' =>
+					Html::element( 'b', [], wfMessage( 'protectsite-timeout' )->escaped() ) .
+					' ' .
+					Html::element(
+						'i',
+						[],
+						$wgLang->timeAndDate( wfTimestamp( TS_MW, $prot['until'] ), true )
+					),
+				'raw' => true,
+			],
+		];
+
+		if ( isset( $prot['comment'] ) ) {
+			$formDescriptor[] = [
+				'type' => 'info',
+				'default' =>
+					Html::element( 'b', [], wfMessage( 'protectsite-comment' )->escaped() ) .
+					' ' .
+					Html::element( 'i', [], $prot['comment'] ),
+				'raw' => true,
+			];
+		}
+
+		$formDescriptor[] = $this->textbox( 'ucomment' );
+
+		$this->createForm( 'unprotect', $formDescriptor );
 	}
 
 	function setProtectSiteForm() {
@@ -233,29 +246,39 @@ class ProtectSiteForm {
 
 		/* Construct page data and add to output. */
 		$wgOut->addWikiMsg( 'protectsite-text-protect' );
-		$wgOut->addHTML(
-			'<form name="Protectsite" action="' . $this->action . '" method="post">' . "\n" .
-				$this->fieldset( 'title',
-					$this->radiobox( 'createaccount', $createaccount ) .
-					$this->radiobox( 'createpage', $createpage ) .
-					$this->radiobox( 'edit', $edit ) .
-					$this->radiobox( 'move', $move ) .
-					$this->radiobox( 'upload', $upload ) .
-					$this->textbox( 'timeout', $wgProtectSiteDefaultTimeout,
-					( isset( $wgProtectSiteLimit ) ?
-						' (' . wfMessage( 'protectsite-maxtimeout', $wgProtectSiteLimit )->parse() . ')' :
-						''
-					) ) .
-					"\n<br />" .
-					$this->textbox( 'comment', isset( $request['comment'] ) ? $request['comment'] : '' ) .
-					"\n<br />" .
-					Xml::element( 'input', [
-						'type'	=> 'submit',
-						'name'	=> 'protect',
-						'value' => wfMessage( 'protectsite-protect' )->text() ]
-					)
-				) .
-			'</form>'
-		);
+
+		$formDescriptor = [
+			$this->radiobox( 'createaccount', $createaccount ),
+			$this->radiobox( 'createpage', $createpage ),
+			$this->radiobox( 'edit', $edit ),
+			$this->radiobox( 'move', $move ),
+			$this->radiobox( 'upload', $upload ),
+			$this->textbox(
+				'timeout',
+				$wgProtectSiteDefaultTimeout,
+				( isset( $wgProtectSiteLimit )
+					?
+					' (' . wfMessage( 'protectsite-maxtimeout', $wgProtectSiteLimit )->parse() . ')'
+					:
+					''
+				)
+			),
+			$this->textbox( 'comment', isset( $request['comment'] ) ? $request['comment'] : '' ),
+		];
+
+		$this->createForm( 'protect', $formDescriptor );
+	}
+
+	private function createForm( $submitName, $formDescriptor ) {
+		$htmlForm = HTMLForm::factory( 'ooui', $formDescriptor );
+		$htmlForm
+			->setTitle( SpecialPage::getTitleFor( 'ProtectSite' ) )
+			->setMethod( 'post' )
+			->setAction( $this->action )
+			->setSubmitName( $submitName )
+			->setSubmitTextMsg( 'protectsite-' . $submitName )
+			->setWrapperLegendMsg( 'protectsite-title' )
+			->prepareForm()
+			->displayForm( false );
 	}
 }
