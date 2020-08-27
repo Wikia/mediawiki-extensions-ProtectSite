@@ -62,6 +62,10 @@ class ProtectSiteForm {
 			$prot['move'] = $request['move'];
 			$prot['upload'] = $request['upload'];
 			$prot['comment'] = isset( $request['comment'] ) ? $request['comment'] : '';
+<<<<<<< Updated upstream
+=======
+			$prot['suppressLogs'] = $request['suppressLogs'];
+>>>>>>> Stashed changes
 
 			if ( isset( $wgProtectSiteLimit ) &&
 				( $until > strtotime( '+' . $wgProtectSiteLimit, $curr_time ) )
@@ -101,6 +105,7 @@ class ProtectSiteForm {
 		$this->persist_data->delete( 'protectsite' );
 		$wgMemc->delete( $wgMemc->makeKey( 'protectsite' ) );
 
+<<<<<<< Updated upstream
 		/* Create a log entry */
 		$logEntry = new ManualLogEntry( 'protect', 'unprotect' );
 		$logEntry->setPerformer( $user );
@@ -108,6 +113,16 @@ class ProtectSiteForm {
 		$logEntry->setComment( $request['ucomment'] );
 		$logEntry->publish( $logEntry->insert() );
 
+=======
+		if ( ! $request['suppressLogs'] ) {
+            /* Create a log entry */
+            $logEntry = new ManualLogEntry( 'protect', 'unprotect' );
+            $logEntry->setPerformer( $user );
+            $logEntry->setTarget( SpecialPage::getTitleFor( 'Allpages' ) );
+            $logEntry->setComment( $request['ucomment'] );
+            $logEntry->publish( $logEntry->insert() );
+        }
+>>>>>>> Stashed changes
 		/* Call the Protect Form function to display the current state. */
 		$this->setProtectSiteForm();
 	}
@@ -225,6 +240,11 @@ class ProtectSiteForm {
 		}
 
 		$formDescriptor[] = $this->textbox( 'ucomment' );
+		$formDescriptor[] = [
+				'name' => 'suppressLogs',
+				'type' => 'check',
+				'label-message' => 'protectsite-suppress-logs',
+		];
 
 		$this->createForm( 'unprotect', $formDescriptor );
 	}
@@ -243,6 +263,11 @@ class ProtectSiteForm {
 		$move[( isset( $request['move'] ) ? $request['move'] : 0 )] = true;
 		$upload = [ 0 => false, 1 => false ];
 		$upload[( isset( $request['upload'] ) ? $request['upload'] : 0 )] = true;
+<<<<<<< Updated upstream
+=======
+        $suppressLogs = [ 0 => false ];
+        $suppressLogs[( isset( $request['upload'] ) ? $request['upload'] : 0 )] = true;
+>>>>>>> Stashed changes
 
 		/* Construct page data and add to output. */
 		$wgOut->addWikiMsg( 'protectsite-text-protect' );
@@ -264,6 +289,14 @@ class ProtectSiteForm {
 				)
 			),
 			$this->textbox( 'comment', isset( $request['comment'] ) ? $request['comment'] : '' ),
+<<<<<<< Updated upstream
+=======
+			[
+				'name' => 'suppressLogs',
+				'type' => 'check',
+				'label-message' => 'protectsite-suppress-logs',
+			]
+>>>>>>> Stashed changes
 		];
 
 		$this->createForm( 'protect', $formDescriptor );
