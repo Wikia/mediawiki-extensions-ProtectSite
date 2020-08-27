@@ -39,5 +39,6 @@
 	"protectsite-upload-0": "Registered users and administrators",
 	"protectsite-upload-1": "Administrators only",
 	"action-protectsite": "limit actions that can be performed for some groups for a limited time",
-	"right-protectsite": "Limit actions that can be performed for some groups for a limited time"
+	"right-protectsite": "Limit actions that can be performed for some groups for a limited time",
+	"protecsite-suppress-logs": "Suppress expiry time from logs"
 }

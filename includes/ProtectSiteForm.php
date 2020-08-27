@@ -62,6 +62,7 @@ class ProtectSiteForm {
 			$prot['move'] = $request['move'];
 			$prot['upload'] = $request['upload'];
 			$prot['comment'] = isset( $request['comment'] ) ? $request['comment'] : '';
+            $prot['suppressLogs'] = $request['suppressLogs'];
 
 			if ( isset( $wgProtectSiteLimit ) &&
 				( $until > strtotime( '+' . $wgProtectSiteLimit, $curr_time ) )
@@ -77,8 +78,7 @@ class ProtectSiteForm {
 			$this->persist_data->set( 'protectsite', $prot, $prot['until'] );
 			$wgMemc->set( $wgMemc->makeKey( 'protectsite' ), $prot, $prot['until'] );
 
-			$a = false;
-			if ( $a ) {
+			if ( !$prot['suppressLogs'] ) {
                 /* Create a log entry */
                 $logEntry = new ManualLogEntry( 'protect', 'protect' );
                 $logEntry->setPerformer( $user );
@@ -103,8 +103,8 @@ class ProtectSiteForm {
 		$this->persist_data->delete( 'protectsite' );
 		$wgMemc->delete( $wgMemc->makeKey( 'protectsite' ) );
 
-		$a = false;
-		if ( $a ) {
+        $suppressLogs = true;
+		if ( ! $request['suppressLogs'] ) {
             /* Create a log entry */
             $logEntry = new ManualLogEntry( 'protect', 'unprotect' );
             $logEntry->setPerformer( $user );
@@ -247,6 +247,8 @@ class ProtectSiteForm {
 		$move[( isset( $request['move'] ) ? $request['move'] : 0 )] = true;
 		$upload = [ 0 => false, 1 => false ];
 		$upload[( isset( $request['upload'] ) ? $request['upload'] : 0 )] = true;
+        $suppressLogs = [ 0 => false, 1 => false ];
+        $suppressLogs[( isset( $request['upload'] ) ? $request['upload'] : 0 )] = true;
 
 		/* Construct page data and add to output. */
 		$wgOut->addWikiMsg( 'protectsite-text-protect' );
@@ -268,6 +270,7 @@ class ProtectSiteForm {
 				)
 			),
 			$this->textbox( 'comment', isset( $request['comment'] ) ? $request['comment'] : '' ),
+            $this->radiobox( 'suppress-logs', $suppressLogs ),
 		];
 
 		$this->createForm( 'protect', $formDescriptor );
