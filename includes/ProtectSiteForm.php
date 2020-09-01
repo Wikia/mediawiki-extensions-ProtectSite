@@ -106,11 +106,11 @@ class ProtectSiteForm {
 		$wgMemc->delete( $wgMemc->makeKey( 'protectsite' ) );
 
 		/* Create a log entry */
-        $logEntry = new ManualLogEntry( 'protect', 'unprotect' );
-        $logEntry->setPerformer( $user );
-        $logEntry->setTarget( SpecialPage::getTitleFor( 'Allpages' ) );
-        $logEntry->setComment( $request['ucomment'] );
-        $logEntry->publish( $logEntry->insert() );
+		$logEntry = new ManualLogEntry( 'protect', 'unprotect' );
+		$logEntry->setPerformer( $user );
+		$logEntry->setTarget( SpecialPage::getTitleFor( 'Allpages' ) );
+		$logEntry->setComment( $request['ucomment'] );
+		$logEntry->publish( $logEntry->insert() );
 
 		/* Call the Protect Form function to display the current state. */
 		$this->setProtectSiteForm();
