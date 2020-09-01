@@ -79,7 +79,7 @@ class ProtectSiteForm {
 			$wgMemc->set( $wgMemc->makeKey( 'protectsite' ), $prot, $prot['until'] );
 
 			$comment = $prot['timeout'] . ( strlen( $prot['comment'] ) > 0 ? '; ' . $prot['comment'] : '');
-			if ( !$prot['suppressLogs'] ) {
+			if ( $prot['suppressLogs'] ) {
 				$comment = $prot['comment'];
 			}
 			/* Create a log entry */
