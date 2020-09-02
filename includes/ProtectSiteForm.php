@@ -62,6 +62,7 @@ class ProtectSiteForm {
 			$prot['move'] = $request['move'];
 			$prot['upload'] = $request['upload'];
 			$prot['comment'] = isset( $request['comment'] ) ? $request['comment'] : '';
+			$prot['suppressLogs'] = isset( $request['suppressLogs'] );
 
 			if ( isset( $wgProtectSiteLimit ) &&
 				( $until > strtotime( '+' . $wgProtectSiteLimit, $curr_time ) )
@@ -77,14 +78,17 @@ class ProtectSiteForm {
 			$this->persist_data->set( 'protectsite', $prot, $prot['until'] );
 			$wgMemc->set( $wgMemc->makeKey( 'protectsite' ), $prot, $prot['until'] );
 
+			$comment = $prot['timeout'] . ( strlen( $prot['comment'] ) > 0 ? '; ' . $prot['comment'] : '');
+			if ( $prot['suppressLogs'] ) {
+				$comment = $prot['comment'];
+			}
 			/* Create a log entry */
 			$logEntry = new ManualLogEntry( 'protect', 'protect' );
 			$logEntry->setPerformer( $user );
 			$logEntry->setTarget( SpecialPage::getTitleFor( 'Allpages' ) );
-			$logEntry->setComment(
-				$prot['timeout'] . ( strlen( $prot['comment'] ) > 0 ? '; ' . $prot['comment'] : '' )
-			);
+			$logEntry->setComment( $comment );
 			$logEntry->publish( $logEntry->insert() );
+
 
 			/* Call the Unprotect Form function to display the current state. */
 			$this->unProtectSiteForm( $prot );
@@ -243,6 +247,8 @@ class ProtectSiteForm {
 		$move[( isset( $request['move'] ) ? $request['move'] : 0 )] = true;
 		$upload = [ 0 => false, 1 => false ];
 		$upload[( isset( $request['upload'] ) ? $request['upload'] : 0 )] = true;
+		$suppressLogs = [ 0 => false, 1 => true ];
+		$suppressLogs[( isset( $request['suppressLogs'] ) ? $request['suppressLogs'] : 0 )] = true;
 
 		/* Construct page data and add to output. */
 		$wgOut->addWikiMsg( 'protectsite-text-protect' );
@@ -264,6 +270,11 @@ class ProtectSiteForm {
 				)
 			),
 			$this->textbox( 'comment', isset( $request['comment'] ) ? $request['comment'] : '' ),
+			[
+				'name' => 'suppressLogs',
+				'type' => 'check',
+				'label-message' => 'protectsite-suppress-logs',
+			]
 		];
 
 		$this->createForm( 'protect', $formDescriptor );
